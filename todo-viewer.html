@@ -5,6 +5,11 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Project Todo Viewer</title>
+    <!-- React and ReactDOM from CDN -->
+    <script crossorigin src="https://unpkg.com/react@18/umd/react.production.min.js"></script>
+    <script crossorigin src="https://unpkg.com/react-dom@18/umd/react-dom.production.min.js"></script>
+    <!-- Babel Standalone for JSX transpilation -->
+    <script src="https://unpkg.com/@babel/standalone/babel.min.js"></script>
     <script src="https://cdn.tailwindcss.com"></script>
     <script>
         // Configure Tailwind
@@ -42,443 +47,21 @@
     </style>
 </head>
 
-<body class="bg-background text-foreground p-4 min-h-screen">
-    <div class="max-w-lg mx-auto">
-        <h1 class="text-3xl font-bold mb-6 text-center">Project Todos</h1>
+<body class="bg-background text-foreground min-h-screen">
+    <div id="root"></div>
 
-        <div class="sticky bg-white top-0 z-50 py-4 flex flex-col items-center gap-4">
-            <div class="w-full">
-                <div class="grid grid-cols-3 gap-2" id="statusFilters">
-                    <button
-                        class="px-4 py-3 border border-border bg-white rounded-md text-sm font-medium cursor-pointer transition-all hover:bg-muted"
-                        data-value="pending" onclick="setStatusFilter('pending')">Pending <span
-                            class="text-muted-foreground font-normal" id="pendingCount">0</span></button>
-                    <button
-                        class="px-4 py-3 border border-border bg-white rounded-md text-sm font-medium cursor-pointer transition-all hover:bg-muted"
-                        data-value="in-progress" onclick="setStatusFilter('in-progress')">Progress <span
-                            class="text-muted-foreground font-normal" id="inProgressCount">0</span></button>
-                    <button
-                        class="px-4 py-3 border border-border bg-white rounded-md text-sm font-medium cursor-pointer transition-all hover:bg-muted"
-                        data-value="done" onclick="setStatusFilter('done')">Done <span
-                            class="text-muted-foreground font-normal" id="doneCount">0</span></button>
-                </div>
-            </div>
-            <div class="w-full">
-                <div class="grid grid-cols-3 gap-2" id="priorityFilters">
-                    <button
-                        class="px-4 py-3 border border-border bg-white rounded-md text-sm font-medium cursor-pointer transition-all hover:bg-muted"
-                        data-value="high" onclick="setPriorityFilter('high')">High <span
-                            class="text-muted-foreground font-normal" id="highCount">0</span></button>
-                    <button
-                        class="px-4 py-3 border border-border bg-white rounded-md text-sm font-medium cursor-pointer transition-all hover:bg-muted"
-                        data-value="medium" onclick="setPriorityFilter('medium')">Medium <span
-                            class="text-muted-foreground font-normal" id="mediumCount">0</span></button>
-                    <button
-                        class="px-4 py-3 border border-border bg-white rounded-md text-sm font-medium cursor-pointer transition-all hover:bg-muted"
-                        data-value="low" onclick="setPriorityFilter('low')">Low <span
-                            class="text-muted-foreground font-normal" id="lowCount">0</span></button>
-                </div>
-            </div>
-        </div>
-        <div class="mb-6 flex flex-col items-center gap-4">
-            <div class="w-full flex justify-center">
-                <input type="text" id="searchFilter" placeholder="Search todos..."
-                    class="w-full px-5 py-4 border border-border rounded-md text-base bg-white transition-colors focus:outline-none focus:ring-2 focus:ring-foreground focus:ring-opacity-20">
-            </div>
-        </div>
+    <script type="text/babel">
+        const {useState, useEffect, useRef} = React;
 
-        <div class="grid gap-4" id="todosContainer"></div>
-    </div>
-
-    <!-- Export Button with Notification Badge -->
-    <button id="exportButton" onclick="showExportModal()"
-        class="hidden fixed bottom-6 right-6 bg-foreground text-white px-6 py-3 rounded-lg shadow-lg hover:opacity-90 transition-opacity">
-        Export Changes
-        <span id="changeBadge"
-            class="absolute -top-2 -right-2 bg-red-500 text-white text-xs rounded-full h-6 w-6 flex items-center justify-center font-bold">0</span>
-    </button>
-
-    <div class="hidden fixed inset-0 bg-black bg-opacity-80 backdrop-blur-sm z-[1000]" id="promptModal">
-        <div class="bg-card p-8 rounded-lg max-w-2xl mx-auto mt-24 relative border border-border shadow-2xl">
-            <span
-                class="absolute top-4 right-4 text-2xl cursor-pointer text-muted-foreground w-8 h-8 flex items-center justify-center rounded hover:bg-muted transition-colors"
-                onclick="closePromptModal()">&times;</span>
-            <h2 class="text-xl font-semibold mb-4">Export Changes</h2>
-            <p class="mb-4">Copy these commands and paste them into Claude to apply all changes:</p>
-            <div class="bg-muted p-4 rounded font-mono text-sm break-words border border-border" id="promptText"></div>
-            <button onclick="copyPrompt()"
-                class="mt-4 px-4 py-2 bg-foreground text-white rounded-md font-medium hover:opacity-90 transition-opacity">Copy
-                to Clipboard</button>
-        </div>
-    </div>
-
-    <script>
-        let todos = [];
-        let filteredTodos = [];
-        let currentStatusFilter = '';
-        let currentPriorityFilter = '';
-        let changeHistory = [];
-        let expandedField = {}; // Track which field is expanded for each todo
-
-        // Track a change
-        function trackChange(todoId, changeType, oldValue, newValue)
-        {
-            const todo = todos.find(t => t.id === todoId);
-            changeHistory.push({
-                id: todoId,
-                title: todo.title,
-                type: changeType,
-                oldValue: oldValue,
-                newValue: newValue,
-                timestamp: new Date()
-            });
-            updateExportButton();
-        }
-
-        // Update export button visibility and count
-        function updateExportButton()
-        {
-            const exportBtn = document.getElementById('exportButton');
-            const badge = document.getElementById('changeBadge');
-            if (changeHistory.length > 0) {
-                exportBtn.classList.remove('hidden');
-                badge.textContent = changeHistory.length;
-            } else {
-                exportBtn.classList.add('hidden');
-            }
-        }
-
-        // Reset all filters
-        function resetAllFilters()
-        {
-            currentStatusFilter = '';
-            currentPriorityFilter = '';
-            document.getElementById('searchFilter').value = '';
-
-            // Remove active class from all filter buttons
-            document.querySelectorAll('.filter-btn').forEach(btn =>
-            {
-                btn.classList.remove('active');
-            });
-
-            applyFilters();
-        }
-
-        // Set status filter
-        function setStatusFilter(value)
-        {
-            // Toggle filter: if clicking the same filter, reset it
-            if (currentStatusFilter === value) {
-                currentStatusFilter = '';
-            } else {
-                currentStatusFilter = value;
-            }
-
-            // Update active button
-            document.querySelectorAll('#statusFilters button').forEach(btn =>
-            {
-                if (btn.dataset.value === currentStatusFilter) {
-                    btn.classList.add('bg-muted');
-                    btn.classList.remove('bg-white', 'hover:bg-muted');
-                } else {
-                    btn.classList.remove('bg-muted');
-                    btn.classList.add('bg-white', 'hover:bg-muted');
-                }
-            });
-
-            applyFilters();
-        }
-
-        // Set priority filter
-        function setPriorityFilter(value)
-        {
-            // Toggle filter: if clicking the same filter, reset it
-            if (currentPriorityFilter === value) {
-                currentPriorityFilter = '';
-            } else {
-                currentPriorityFilter = value;
-            }
-
-            // Update active button
-            document.querySelectorAll('#priorityFilters button').forEach(btn =>
-            {
-                if (btn.dataset.value === currentPriorityFilter) {
-                    btn.classList.add('bg-muted');
-                    btn.classList.remove('bg-white', 'hover:bg-muted');
-                } else {
-                    btn.classList.remove('bg-muted');
-                    btn.classList.add('bg-white', 'hover:bg-muted');
-                }
-            });
-
-            applyFilters();
-        }
-
-        // Load todos from JSON file
-        async function loadTodos()
-        {
-            try {
-                const response = await fetch('todos.json');
-                const data = await response.json();
-                todos = data.todos;
-                applyFilters(); // This will call updateStats
-            } catch (error) {
-                console.error('Error loading todos:', error);
-                document.getElementById('todosContainer').innerHTML =
-                    '<p>Error loading todos.json. Make sure the file exists in the same directory.</p>';
-            }
-        }
-
-        // Create todo DOM element
-        function createTodo(todo)
-        {
-            const div = document.createElement('div');
-            const isDeleted = changeHistory.some(change => change.id === todo.id && change.type === 'delete');
-            div.className = `bg-card p-6 rounded-lg border border-border shadow-sm hover:shadow-lg hover:-translate-y-0.5 transition-all ${ isDeleted ? 'opacity-50' : '' }`;
-            div.dataset.id = todo.id;
-
-
-            const isStatusExpanded = expandedField[todo.id] === 'status';
-            const isPriorityExpanded = expandedField[todo.id] === 'priority';
-
-            div.innerHTML = `
-                <div class="flex justify-between items-center mb-3 pb-2 border-b border-border">
-                    ${ !isPriorityExpanded ? `
-                        <div class="flex gap-2">
-                            ${ isStatusExpanded ?
-                        ['pending', 'in-progress', 'done'].map(status => `
-                                    <button data-action="update-status" data-todo-id="${ todo.id }" data-value="${ status }" 
-                                        class="px-3 py-1 rounded-md text-sm font-medium capitalize cursor-pointer transition-all ${ todo.status === status ? 'bg-muted' : 'bg-white hover:bg-gray-50'
-                            } border border-border">
-                                        ${ status.replace('-', ' ') }
-                                    </button>
-                                `).join('')
-                        :
-                        `<button class="px-3 py-1 rounded-md text-sm font-medium capitalize cursor-pointer transition-all bg-white hover:bg-gray-50 border border-border" 
-                                    data-action="expand-status" data-todo-id="${ todo.id }">
-                                    ${ todo.status.replace('-', ' ') }
-                                </button>`
-                    }
-                        </div>
-                    ` : '' }
-                    
-                    ${ !isStatusExpanded ? `
-                        <div class="flex gap-2">
-                            ${ isPriorityExpanded ?
-                        ['high', 'medium', 'low'].map(priority => `
-                                    <button data-action="update-priority" data-todo-id="${ todo.id }" data-value="${ priority }" 
-                                        class="px-3 py-1 rounded-md text-sm font-medium capitalize cursor-pointer transition-all ${ todo.priority === priority ? 'bg-muted' : 'bg-white hover:bg-gray-50'
-                            } border border-border">
-                                        ${ priority }
-                                    </button>
-                                `).join('')
-                        :
-                        `<button class="px-3 py-1 rounded-md text-sm font-medium capitalize cursor-pointer transition-all bg-white hover:bg-gray-50 border border-border" 
-                                    data-action="expand-priority" data-todo-id="${ todo.id }">
-                                    ${ todo.priority }
-                                </button>`
-                    }
-                        </div>
-                    ` : '' }
-                </div>
-                <div class="mb-2">
-                    <div class="text-lg font-semibold cursor-pointer todo-title" data-action="edit-title" data-todo-id="${ todo.id }">${ escapeHtml(todo.title) }</div>
-                </div>
-                ${ todo.description ? `<div class="text-muted-foreground text-sm mb-3 leading-relaxed">${ escapeHtml(todo.description) }</div>` : '' }
-                <div class="flex gap-5 text-xs text-muted-foreground mb-3">
-                    <span class="flex items-center gap-1">📅 Created: ${ formatDate(todo.created) }</span>
-                    <span class="flex items-center gap-1">🔄 Updated: ${ formatDate(todo.updated) }</span>
-                    ${ todo.requestedBy ? `<span class="flex items-center gap-1">👤 By: ${ todo.requestedBy === 'ai-agent' ? 'AI Agent' : 'User' }</span>` : '' }
-                </div>
-                <div class="flex justify-between items-center mt-4 pt-4 border-t border-border">
-                    <div class="flex gap-1 flex-wrap">
-                        ${ todo.tags.map(tag => `<span class="bg-muted text-muted-foreground px-2 py-0.5 rounded-full text-xs font-medium border border-border">${ escapeHtml(tag) }</span>`).join('') }
-                    </div>
-                    <div class="flex gap-2">
-                        <button class="px-3 py-1 border border-red-500 text-red-500 rounded-md text-sm font-medium capitalize cursor-pointer transition-all hover:bg-red-50" data-action="delete" data-todo-id="${ todo.id }">
-                            Delete
-                        </button>
-                    </div>
-                </div>
-            `;
-
-            return div;
-        }
-
-        // Escape HTML to prevent XSS
-        function escapeHtml(text)
+        // Utility functions
+        const escapeHtml = (text) =>
         {
             const div = document.createElement('div');
             div.textContent = text;
             return div.innerHTML;
-        }
+        };
 
-        // Update statistics based on filtered todos
-        function updateStats()
-        {
-            const searchFilter = document.getElementById('searchFilter').value.toLowerCase();
-
-            // Status counts - respect other filters
-            const pendingCount = todos.filter(t =>
-            {
-                const matchPriority = !currentPriorityFilter || t.priority === currentPriorityFilter;
-                const matchSearch = !searchFilter ||
-                    t.title.toLowerCase().includes(searchFilter) ||
-                    t.description.toLowerCase().includes(searchFilter) ||
-                    t.tags.some(tag => tag.toLowerCase().includes(searchFilter));
-                return t.status === 'pending' && matchPriority && matchSearch;
-            }).length;
-
-            const inProgressCount = todos.filter(t =>
-            {
-                const matchPriority = !currentPriorityFilter || t.priority === currentPriorityFilter;
-                const matchSearch = !searchFilter ||
-                    t.title.toLowerCase().includes(searchFilter) ||
-                    t.description.toLowerCase().includes(searchFilter) ||
-                    t.tags.some(tag => tag.toLowerCase().includes(searchFilter));
-                return t.status === 'in-progress' && matchPriority && matchSearch;
-            }).length;
-
-            const doneCount = todos.filter(t =>
-            {
-                const matchPriority = !currentPriorityFilter || t.priority === currentPriorityFilter;
-                const matchSearch = !searchFilter ||
-                    t.title.toLowerCase().includes(searchFilter) ||
-                    t.description.toLowerCase().includes(searchFilter) ||
-                    t.tags.some(tag => tag.toLowerCase().includes(searchFilter));
-                return t.status === 'done' && matchPriority && matchSearch;
-            }).length;
-
-            document.getElementById('pendingCount').textContent = pendingCount;
-            document.getElementById('inProgressCount').textContent = inProgressCount;
-            document.getElementById('doneCount').textContent = doneCount;
-
-            // Priority counts - respect other filters
-            const highCount = todos.filter(t =>
-            {
-                const matchStatus = !currentStatusFilter || t.status === currentStatusFilter;
-                const matchSearch = !searchFilter ||
-                    t.title.toLowerCase().includes(searchFilter) ||
-                    t.description.toLowerCase().includes(searchFilter) ||
-                    t.tags.some(tag => tag.toLowerCase().includes(searchFilter));
-                return t.priority === 'high' && matchStatus && matchSearch;
-            }).length;
-
-            const mediumCount = todos.filter(t =>
-            {
-                const matchStatus = !currentStatusFilter || t.status === currentStatusFilter;
-                const matchSearch = !searchFilter ||
-                    t.title.toLowerCase().includes(searchFilter) ||
-                    t.description.toLowerCase().includes(searchFilter) ||
-                    t.tags.some(tag => tag.toLowerCase().includes(searchFilter));
-                return t.priority === 'medium' && matchStatus && matchSearch;
-            }).length;
-
-            const lowCount = todos.filter(t =>
-            {
-                const matchStatus = !currentStatusFilter || t.status === currentStatusFilter;
-                const matchSearch = !searchFilter ||
-                    t.title.toLowerCase().includes(searchFilter) ||
-                    t.description.toLowerCase().includes(searchFilter) ||
-                    t.tags.some(tag => tag.toLowerCase().includes(searchFilter));
-                return t.priority === 'low' && matchStatus && matchSearch;
-            }).length;
-
-            document.getElementById('highCount').textContent = highCount;
-            document.getElementById('mediumCount').textContent = mediumCount;
-            document.getElementById('lowCount').textContent = lowCount;
-        }
-
-        // Check if any filters are active
-        function hasActiveFilters()
-        {
-            return currentStatusFilter !== '' || currentPriorityFilter !== '' || document.getElementById('searchFilter').value !== '';
-        }
-
-        // Apply filters
-        function applyFilters()
-        {
-            const statusFilter = currentStatusFilter;
-            const priorityFilter = currentPriorityFilter;
-            const searchFilter = document.getElementById('searchFilter').value.toLowerCase();
-
-            filteredTodos = todos.filter(todo =>
-            {
-                const matchStatus = !statusFilter || todo.status === statusFilter;
-                const matchPriority = !priorityFilter || todo.priority === priorityFilter;
-                const matchSearch = !searchFilter ||
-                    todo.title.toLowerCase().includes(searchFilter) ||
-                    todo.description.toLowerCase().includes(searchFilter) ||
-                    todo.tags.some(tag => tag.toLowerCase().includes(searchFilter));
-
-                return matchStatus && matchPriority && matchSearch;
-            });
-
-            renderTodos();
-            updateStats(); // Update stats when filters change
-        }
-
-        // Render todos
-        function renderTodos()
-        {
-            const container = document.getElementById('todosContainer');
-            container.innerHTML = '';
-
-            if (filteredTodos.length === 0) {
-                container.innerHTML = '<p>No todos found matching the filters.</p>';
-                return;
-            }
-
-            filteredTodos.forEach(todo =>
-            {
-                container.appendChild(createTodo(todo));
-            });
-
-            // No need to attach listeners here since we use event delegation
-        }
-
-
-        // Edit title inline
-        function editTitle(id)
-        {
-            const todo = todos.find(t => t.id === id);
-            const titleElement = document.querySelector(`[data-id="${ id }"] .todo-title`);
-
-            if (titleElement.classList.contains('editing')) return;
-
-            titleElement.classList.add('editing');
-            titleElement.contentEditable = true;
-            titleElement.focus();
-
-            // Select all text
-            const range = document.createRange();
-            range.selectNodeContents(titleElement);
-            const selection = window.getSelection();
-            selection.removeAllRanges();
-            selection.addRange(range);
-
-            titleElement.addEventListener('blur', function ()
-            {
-                const newTitle = titleElement.textContent.trim();
-                if (newTitle && newTitle !== todo.title) {
-                    trackChange(id, 'title', todo.title, newTitle);
-                    todo.title = newTitle;
-                }
-                titleElement.contentEditable = false;
-                titleElement.classList.remove('editing');
-            }, {once: true});
-
-            titleElement.addEventListener('keydown', function (e)
-            {
-                if (e.key === 'Enter') {
-                    e.preventDefault();
-                    titleElement.blur();
-                }
-            });
-        }
-
-        // Format date for display
-        function formatDate(dateString)
+        const formatDate = (dateString) =>
         {
             const date = new Date(dateString);
             const today = new Date();
@@ -496,202 +79,521 @@
             } else {
                 return date.toLocaleDateString('en-US', {month: 'short', day: 'numeric', year: 'numeric'});
             }
-        }
+        };
 
-        // Expand status selector
-        function expandStatus(todoId)
+        // Components
+        const FilterButton = ({value, label, count, isActive, onClick}) => (
+            <button
+                className={`px-4 py-3 border border-border rounded-md text-sm font-medium cursor-pointer transition-all ${ isActive ? 'bg-muted' : 'bg-white hover:bg-muted'
+                    }`}
+                onClick={() => onClick(value)}
+            >
+                {label} <span className="text-muted-foreground font-normal">{count}</span>
+            </button>
+        );
+
+        const TodoItem = ({todo, isDeleted, expandedField, onExpandStatus, onExpandPriority, onUpdateStatus, onUpdatePriority, onEditTitle, onDelete}) =>
         {
-            expandedField[todoId] = 'status';
-            renderTodos();
-        }
+            const [isEditingTitle, setIsEditingTitle] = useState(false);
+            const [editedTitle, setEditedTitle] = useState(todo.title);
+            const titleRef = useRef(null);
 
-        // Expand priority selector
-        function expandPriority(todoId)
-        {
-            expandedField[todoId] = 'priority';
-            renderTodos();
-        }
+            const isStatusExpanded = expandedField === 'status';
+            const isPriorityExpanded = expandedField === 'priority';
 
-        // Update todo status
-        function updateTodoStatus(todoId, newStatus)
-        {
-            const todo = todos.find(t => t.id === todoId);
-            const oldStatus = todo.status;
-            
-            // Don't track if status hasn't changed
-            if (oldStatus === newStatus) {
-                delete expandedField[todoId];
-                renderTodos();
-                return;
-            }
-            
-            todo.status = newStatus;
-            trackChange(todoId, 'status', oldStatus, newStatus);
-            delete expandedField[todoId];
-            renderTodos();
-        }
+            const handleTitleClick = () =>
+            {
+                setIsEditingTitle(true);
+                setEditedTitle(todo.title);
+            };
 
-        // Update todo priority
-        function updateTodoPriority(todoId, newPriority)
-        {
-            const todo = todos.find(t => t.id === todoId);
-            const oldPriority = todo.priority;
-            
-            // Don't track if priority hasn't changed
-            if (oldPriority === newPriority) {
-                delete expandedField[todoId];
-                renderTodos();
-                return;
-            }
-            
-            todo.priority = newPriority;
-            trackChange(todoId, 'priority', oldPriority, newPriority);
-            delete expandedField[todoId];
-            renderTodos();
-        }
-
-
-        // Delete todo
-        function deleteTodo(id)
-        {
-            const todo = todos.find(t => t.id === id);
-            if (confirm(`Are you sure you want to delete "${ todo.title }"?`)) {
-                // Check if already marked for deletion
-                const existingDeleteIndex = changeHistory.findIndex(change =>
-                    change.id === id && change.type === 'delete'
-                );
-
-                if (existingDeleteIndex === -1) {
-                    trackChange(id, 'delete', todo.title, null);
-                } else {
-                    // If already marked for deletion, remove from change history (undo delete)
-                    changeHistory.splice(existingDeleteIndex, 1);
-                    updateExportButton();
+            const handleTitleBlur = () =>
+            {
+                const newTitle = editedTitle.trim();
+                if (newTitle && newTitle !== todo.title) {
+                    onEditTitle(todo.id, newTitle);
                 }
+                setIsEditingTitle(false);
+                setEditedTitle(todo.title);
+            };
 
-                renderTodos(); // Re-render to update opacity
-            }
-        }
-
-        // Show export modal
-        function showExportModal()
-        {
-            const commands = generateCommands();
-            document.getElementById('promptText').textContent = commands;
-            document.getElementById('promptModal').classList.remove('hidden');
-        }
-
-        // Generate commands from change history
-        function generateCommands()
-        {
-            return changeHistory.map(change =>
+            const handleTitleKeyDown = (e) =>
             {
-                switch (change.type) {
-                    case 'status':
-                        return `Please change the status of todo "${ change.title }" (ID: ${ change.id }) from ${ change.oldValue } to ${ change.newValue }`;
-                    case 'priority':
-                        return `Please change the priority of todo "${ change.title }" (ID: ${ change.id }) from ${ change.oldValue } to ${ change.newValue }`;
-                    case 'title':
-                        return `Please update the todo with ID "${ change.id }" from title "${ change.oldValue }" to "${ change.newValue }"`;
-                    case 'delete':
-                        return `Please delete the todo "${ change.oldValue }" (ID: ${ change.id }) from todos.json`;
-                    default:
-                        return '';
+                if (e.key === 'Enter') {
+                    e.preventDefault();
+                    titleRef.current?.blur();
                 }
-            }).join('\n');
-        }
+            };
 
-        // Show prompt modal (kept for compatibility)
-        function showPrompt(text)
-        {
-            document.getElementById('promptText').textContent = text;
-            document.getElementById('promptModal').classList.remove('hidden');
-        }
-
-        // Close prompt modal
-        function closePromptModal()
-        {
-            document.getElementById('promptModal').classList.add('hidden');
-        }
-
-        // Copy prompt to clipboard
-        function copyPrompt()
-        {
-            const text = document.getElementById('promptText').textContent;
-            navigator.clipboard.writeText(text).then(() =>
+            useEffect(() =>
             {
-                alert('Commands copied to clipboard! Changes cleared.');
-                changeHistory = [];
-                updateExportButton();
-                closePromptModal();
-            }).catch(err =>
+                if (isEditingTitle && titleRef.current) {
+                    titleRef.current.focus();
+                    titleRef.current.select();
+                }
+            }, [isEditingTitle]);
+
+            return (
+                <div className={`todo-card bg-card p-4 border-1 border-t transition-all ${ isDeleted ? 'opacity-50' : '' }`}>
+                    <div className="flex justify-between items-center mb-3 pb-4 border-border">
+                        {!isPriorityExpanded && (
+                            <div className="flex gap-2">
+                                {isStatusExpanded ? (
+                                    ['pending', 'in-progress', 'done'].map(status => (
+                                        <button
+                                            key={status}
+                                            onClick={() => onUpdateStatus(todo.id, status)}
+                                            className={`px-3 py-1 rounded-md text-sm font-medium capitalize cursor-pointer transition-all ${ todo.status === status ? 'bg-muted' : 'bg-white hover:bg-gray-50'
+                                                } border border-border`}
+                                        >
+                                            {status.replace('-', ' ')}
+                                        </button>
+                                    ))
+                                ) : (
+                                    <button
+                                        className="px-3 py-1 rounded-md text-sm font-medium capitalize cursor-pointer transition-all bg-white hover:bg-gray-50 border border-border"
+                                        onClick={() => onExpandStatus(todo.id)}
+                                    >
+                                        {todo.status.replace('-', ' ')}
+                                    </button>
+                                )}
+                            </div>
+                        )}
+
+                        {!isStatusExpanded && (
+                            <div className={`flex gap-2 ${ isPriorityExpanded ? 'w-full justify-end' : '' }`}>
+                                {isPriorityExpanded ? (
+                                    ['high', 'medium', 'low'].map(priority => (
+                                        <button
+                                            key={priority}
+                                            onClick={() => onUpdatePriority(todo.id, priority)}
+                                            className={`px-3 py-1 rounded-md text-sm font-medium capitalize cursor-pointer transition-all ${ todo.priority === priority ? 'bg-muted' : 'bg-white hover:bg-gray-50'
+                                                } border border-border`}
+                                        >
+                                            {priority}
+                                        </button>
+                                    ))
+                                ) : (
+                                    <button
+                                        className="px-3 py-1 rounded-md text-sm font-medium capitalize cursor-pointer transition-all bg-white hover:bg-gray-50 border border-border"
+                                        onClick={() => onExpandPriority(todo.id)}
+                                    >
+                                        {todo.priority}
+                                    </button>
+                                )}
+                            </div>
+                        )}
+                    </div>
+
+                    <div className="mb-2">
+                        {isEditingTitle ? (
+                            <input
+                                ref={titleRef}
+                                type="text"
+                                className="text-lg font-semibold w-full todo-title editing outline-none"
+                                value={editedTitle}
+                                onChange={(e) => setEditedTitle(e.target.value)}
+                                onBlur={handleTitleBlur}
+                                onKeyDown={handleTitleKeyDown}
+                            />
+                        ) : (
+                            <div
+                                className="text-lg font-semibold cursor-pointer todo-title"
+                                onClick={handleTitleClick}
+                            >
+                                {escapeHtml(todo.title)}
+                            </div>
+                        )}
+                    </div>
+
+                    {todo.description && (
+                        <div className="text-muted-foreground text-sm mb-3 leading-relaxed">
+                            {escapeHtml(todo.description)}
+                        </div>
+                    )}
+
+                    <div className="flex gap-5 text-xs text-muted-foreground mb-3">
+                        <span className="flex items-center gap-1">Created: {formatDate(todo.created)} by {todo.requestedBy}</span>
+                        <span className="flex items-center gap-1">Updated: {formatDate(todo.updated)} by {todo.requestedBy}</span>
+                        {todo.requestedBy && (
+                            <span className="flex items-center gap-1">
+                                By: {todo.requestedBy === 'ai-agent' ? 'AI Agent' : 'User'}
+                            </span>
+                        )}
+                    </div>
+
+                    <div className="flex justify-between items-center mt-4 pt-4 border-t border-border">
+                        <div className="flex gap-1 flex-wrap">
+                            {todo.tags.map(tag => (
+                                <span key={tag} className="bg-muted text-muted-foreground px-2 py-0.5 rounded-full text-xs font-medium border border-border">
+                                    {escapeHtml(tag)}
+                                </span>
+                            ))}
+                        </div>
+                        <div className="flex gap-2">
+                            <button
+                                className="px-3 py-1 border border-red-500 text-red-500 rounded-md text-sm font-medium capitalize cursor-pointer transition-all hover:bg-red-50"
+                                onClick={() => onDelete(todo.id)}
+                            >
+                                Delete
+                            </button>
+                        </div>
+                    </div>
+                </div>
+            );
+        };
+
+        const ExportModal = ({isOpen, commands, onClose, onCopy}) =>
+        {
+            if (!isOpen) return null;
+
+            return (
+                <div className="fixed inset-0 bg-black bg-opacity-80 backdrop-blur-sm z-[1000]">
+                    <div className="bg-card p-8 rounded-lg max-w-2xl mx-auto mt-24 relative border border-border shadow-2xl">
+                        <span
+                            className="absolute top-4 right-4 text-2xl cursor-pointer text-muted-foreground w-8 h-8 flex items-center justify-center rounded hover:bg-muted transition-colors"
+                            onClick={onClose}
+                        >
+                            &times;
+                        </span>
+                        <h2 className="text-xl font-semibold mb-4">Export Changes</h2>
+                        <p className="mb-4">Copy these commands and paste them into Claude to apply all changes:</p>
+                        <div className="bg-muted p-4 rounded font-mono text-sm break-words border border-border">
+                            {commands}
+                        </div>
+                        <button
+                            onClick={onCopy}
+                            className="mt-4 px-4 py-2 bg-foreground text-white rounded-md font-medium hover:opacity-90 transition-opacity"
+                        >
+                            Copy to Clipboard
+                        </button>
+                    </div>
+                </div>
+            );
+        };
+
+        const TodoApp = () =>
+        {
+            const [todos, setTodos] = useState([]);
+            const [statusFilter, setStatusFilter] = useState('');
+            const [priorityFilter, setPriorityFilter] = useState('');
+            const [searchFilter, setSearchFilter] = useState('');
+            const [changeHistory, setChangeHistory] = useState([]);
+            const [expandedFields, setExpandedFields] = useState({});
+            const [showExportModal, setShowExportModal] = useState(false);
+
+            // Load todos from JSON file
+            const loadTodos = async () =>
             {
-                console.error('Failed to copy:', err);
+                try {
+                    const response = await fetch('todos.json');
+                    const data = await response.json();
+                    setTodos(data.todos);
+                } catch (error) {
+                    console.error('Error loading todos:', error);
+                }
+            };
+
+            useEffect(() =>
+            {
+                loadTodos();
+                const interval = setInterval(loadTodos, 5000);
+                return () => clearInterval(interval);
+            }, []);
+
+            // Track changes
+            const trackChange = (todoId, changeType, oldValue, newValue) =>
+            {
+                const todo = todos.find(t => t.id === todoId);
+                setChangeHistory(prev => [...prev, {
+                    id: todoId,
+                    title: todo.title,
+                    type: changeType,
+                    oldValue,
+                    newValue,
+                    timestamp: new Date()
+                }]);
+            };
+
+            // Filter todos
+            const filteredTodos = todos.filter(todo =>
+            {
+                const matchStatus = !statusFilter || todo.status === statusFilter;
+                const matchPriority = !priorityFilter || todo.priority === priorityFilter;
+                const matchSearch = !searchFilter ||
+                    todo.title.toLowerCase().includes(searchFilter.toLowerCase()) ||
+                    todo.description.toLowerCase().includes(searchFilter.toLowerCase()) ||
+                    todo.tags.some(tag => tag.toLowerCase().includes(searchFilter.toLowerCase()));
+
+                return matchStatus && matchPriority && matchSearch;
             });
-        }
 
-        // Event listeners
-        document.getElementById('searchFilter').addEventListener('input', applyFilters);
+            // Calculate counts
+            const getCounts = () =>
+            {
+                const counts = {
+                    status: {pending: 0, 'in-progress': 0, done: 0},
+                    priority: {high: 0, medium: 0, low: 0}
+                };
 
-        // Global click handler with event delegation
-        document.addEventListener('click', function (e)
-        {
-            // Check if clicked on modal background
-            if (e.target === document.getElementById('promptModal')) {
-                closePromptModal();
-                return;
-            }
+                todos.forEach(todo =>
+                {
+                    const matchPriority = !priorityFilter || todo.priority === priorityFilter;
+                    const matchStatus = !statusFilter || todo.status === statusFilter;
+                    const matchSearch = !searchFilter ||
+                        todo.title.toLowerCase().includes(searchFilter.toLowerCase()) ||
+                        todo.description.toLowerCase().includes(searchFilter.toLowerCase()) ||
+                        todo.tags.some(tag => tag.toLowerCase().includes(searchFilter.toLowerCase()));
 
-            // Check for data-action attribute
-            const actionElement = e.target.closest('[data-action]');
-            if (actionElement) {
-                e.preventDefault();
-                e.stopPropagation();
+                    if (matchPriority && matchSearch) {
+                        counts.status[todo.status]++;
+                    }
+                    if (matchStatus && matchSearch) {
+                        counts.priority[todo.priority]++;
+                    }
+                });
 
-                const action = actionElement.dataset.action;
-                const todoId = actionElement.dataset.todoId;
-                const value = actionElement.dataset.value;
+                return counts;
+            };
 
-                console.log('Action:', action, 'TodoId:', todoId, 'Value:', value);
+            const counts = getCounts();
 
-                switch (action) {
-                    case 'expand-status':
-                        expandStatus(todoId);
-                        break;
-                    case 'expand-priority':
-                        expandPriority(todoId);
-                        break;
-                    case 'update-status':
-                        updateTodoStatus(todoId, value);
-                        break;
-                    case 'update-priority':
-                        updateTodoPriority(todoId, value);
-                        break;
-                    case 'delete':
-                        deleteTodo(todoId);
-                        break;
-                    case 'edit-title':
-                        editTitle(todoId);
-                        break;
+            // Handlers
+            const handleStatusFilter = (value) =>
+            {
+                setStatusFilter(statusFilter === value ? '' : value);
+            };
+
+            const handlePriorityFilter = (value) =>
+            {
+                setPriorityFilter(priorityFilter === value ? '' : value);
+            };
+
+            const handleExpandStatus = (todoId) =>
+            {
+                setExpandedFields({[todoId]: 'status'});
+            };
+
+            const handleExpandPriority = (todoId) =>
+            {
+                setExpandedFields({[todoId]: 'priority'});
+            };
+
+            const handleUpdateStatus = (todoId, newStatus) =>
+            {
+                const todo = todos.find(t => t.id === todoId);
+                if (todo.status !== newStatus) {
+                    trackChange(todoId, 'status', todo.status, newStatus);
+                    setTodos(prev => prev.map(t => t.id === todoId ? {...t, status: newStatus} : t));
                 }
-                return;
-            }
+                setExpandedFields({});
+            };
 
-            // Close expanded fields when clicking outside todo items
-            const clickedElement = e.target.closest('.todo-item');
-            if (!clickedElement) {
-                if (Object.keys(expandedField).length > 0) {
-                    expandedField = {};
-                    renderTodos();
+            const handleUpdatePriority = (todoId, newPriority) =>
+            {
+                const todo = todos.find(t => t.id === todoId);
+                if (todo.priority !== newPriority) {
+                    trackChange(todoId, 'priority', todo.priority, newPriority);
+                    setTodos(prev => prev.map(t => t.id === todoId ? {...t, priority: newPriority} : t));
                 }
-            }
-        });
+                setExpandedFields({});
+            };
 
-        // Load todos on page load
-        loadTodos();
+            const handleEditTitle = (todoId, newTitle) =>
+            {
+                const todo = todos.find(t => t.id === todoId);
+                trackChange(todoId, 'title', todo.title, newTitle);
+                setTodos(prev => prev.map(t => t.id === todoId ? {...t, title: newTitle} : t));
+            };
 
-        // Reload todos every 5 seconds to catch external changes
-        setInterval(loadTodos, 5000);
+            const handleDelete = (todoId) =>
+            {
+                const todo = todos.find(t => t.id === todoId);
+                if (confirm(`Are you sure you want to delete "${ todo.title }"?`)) {
+                    const existingDeleteIndex = changeHistory.findIndex(
+                        change => change.id === todoId && change.type === 'delete'
+                    );
+
+                    if (existingDeleteIndex === -1) {
+                        trackChange(todoId, 'delete', todo.title, null);
+                    } else {
+                        setChangeHistory(prev => prev.filter((_, i) => i !== existingDeleteIndex));
+                    }
+                }
+            };
+
+            const generateCommands = () =>
+            {
+                return changeHistory.map(change =>
+                {
+                    switch (change.type) {
+                        case 'status':
+                            return `Please change the status of todo "${ change.title }" (ID: ${ change.id }) from ${ change.oldValue } to ${ change.newValue }`;
+                        case 'priority':
+                            return `Please change the priority of todo "${ change.title }" (ID: ${ change.id }) from ${ change.oldValue } to ${ change.newValue }`;
+                        case 'title':
+                            return `Please update the todo with ID "${ change.id }" from title "${ change.oldValue }" to "${ change.newValue }"`;
+                        case 'delete':
+                            return `Please delete the todo "${ change.oldValue }" (ID: ${ change.id }) from todos.json`;
+                        default:
+                            return '';
+                    }
+                }).join('\n');
+            };
+
+            const handleCopyCommands = () =>
+            {
+                const commands = generateCommands();
+                navigator.clipboard.writeText(commands).then(() =>
+                {
+                    alert('Commands copied to clipboard! Changes cleared.');
+                    setChangeHistory([]);
+                    setShowExportModal(false);
+                }).catch(err =>
+                {
+                    console.error('Failed to copy:', err);
+                });
+            };
+
+            // Click outside to close expanded fields
+            useEffect(() =>
+            {
+                const handleClickOutside = (e) =>
+                {
+                    // Don't close if clicking on a button inside the card
+                    if (e.target.tagName === 'BUTTON' || e.target.closest('button')) {
+                        return;
+                    }
+                    // Only close if clicking completely outside any todo card
+                    if (!e.target.closest('.todo-card')) {
+                        setExpandedFields({});
+                    }
+                };
+                document.addEventListener('click', handleClickOutside);
+                return () => document.removeEventListener('click', handleClickOutside);
+            }, []);
+
+            return (
+                <div className="max-w-lg mx-auto">
+                    <h1 className="text-3xl font-bold my-6 text-center">Project Todos</h1>
+
+                    <div className="flex flex-col items-center p-4">
+                        <div className="w-full flex justify-center">
+                            <input
+                                type="text"
+                                placeholder="Search todos..."
+                                className="w-full px-5 py-4 border border-border rounded-md text-base text-center placeholder:text-center bg-white transition-colors focus:outline-none focus:ring-2 focus:ring-foreground focus:ring-opacity-20"
+                                value={searchFilter}
+                                onChange={(e) => setSearchFilter(e.target.value)}
+                            />
+                        </div>
+                    </div>
+
+                    <div className="sticky bg-white/50 backdrop-blur-md border-black/5 border-t-[10px] border-b-[10px] top-[-10px] z-50 p-4 flex flex-col items-center gap-4">
+                        <div className="w-full">
+                            <div className="grid grid-cols-3 gap-2">
+                                <FilterButton
+                                    value="pending"
+                                    label="Pending"
+                                    count={counts.status.pending}
+                                    isActive={statusFilter === 'pending'}
+                                    onClick={handleStatusFilter}
+                                />
+                                <FilterButton
+                                    value="in-progress"
+                                    label="Progress"
+                                    count={counts.status['in-progress']}
+                                    isActive={statusFilter === 'in-progress'}
+                                    onClick={handleStatusFilter}
+                                />
+                                <FilterButton
+                                    value="done"
+                                    label="Done"
+                                    count={counts.status.done}
+                                    isActive={statusFilter === 'done'}
+                                    onClick={handleStatusFilter}
+                                />
+                            </div>
+                        </div>
+                        <div className="w-full">
+                            <div className="grid grid-cols-3 gap-2">
+                                <FilterButton
+                                    value="high"
+                                    label="High"
+                                    count={counts.priority.high}
+                                    isActive={priorityFilter === 'high'}
+                                    onClick={handlePriorityFilter}
+                                />
+                                <FilterButton
+                                    value="medium"
+                                    label="Medium"
+                                    count={counts.priority.medium}
+                                    isActive={priorityFilter === 'medium'}
+                                    onClick={handlePriorityFilter}
+                                />
+                                <FilterButton
+                                    value="low"
+                                    label="Low"
+                                    count={counts.priority.low}
+                                    isActive={priorityFilter === 'low'}
+                                    onClick={handlePriorityFilter}
+                                />
+                            </div>
+                        </div>
+                    </div>
+
+                    <div className="grid gap-4">
+                        {filteredTodos.length === 0 ? (
+                            <p>No todos found matching the filters.</p>
+                        ) : (
+                            filteredTodos.map(todo =>
+                            {
+                                const isDeleted = changeHistory.some(
+                                    change => change.id === todo.id && change.type === 'delete'
+                                );
+                                return (
+                                    <TodoItem
+                                        key={todo.id}
+                                        todo={todo}
+                                        isDeleted={isDeleted}
+                                        expandedField={expandedFields[todo.id]}
+                                        onExpandStatus={handleExpandStatus}
+                                        onExpandPriority={handleExpandPriority}
+                                        onUpdateStatus={handleUpdateStatus}
+                                        onUpdatePriority={handleUpdatePriority}
+                                        onEditTitle={handleEditTitle}
+                                        onDelete={handleDelete}
+                                    />
+                                );
+                            })
+                        )}
+                    </div>
+
+                    {changeHistory.length > 0 && (
+                        <button
+                            className="fixed bottom-6 right-6 bg-foreground text-white px-6 py-3 rounded-lg shadow-lg hover:opacity-90 transition-opacity"
+                            onClick={() => setShowExportModal(true)}
+                        >
+                            Export Changes
+                            <span className="absolute -top-2 -right-2 bg-red-500 text-white text-xs rounded-full h-6 w-6 flex items-center justify-center font-bold">
+                                {changeHistory.length}
+                            </span>
+                        </button>
+                    )}
+
+                    <ExportModal
+                        isOpen={showExportModal}
+                        commands={generateCommands()}
+                        onClose={() => setShowExportModal(false)}
+                        onCopy={handleCopyCommands}
+                    />
+                </div>
+            );
+        };
+
+        // Render the app
+        const root = ReactDOM.createRoot(document.getElementById('root'));
+        root.render(<TodoApp />);
     </script>
 </body>
 
