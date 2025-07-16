@@ -1,0 +1,697 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Project Todo Viewer</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <script>
+        // Configure Tailwind
+        tailwind.config = {
+            theme: {
+                extend: {
+                    colors: {
+                        border: "hsl(214.3 31.8% 91.4%)",
+                        background: "hsl(0 0% 100%)",
+                        foreground: "hsl(222.2 84% 4.9%)",
+                        muted: {
+                            DEFAULT: "hsl(210 40% 96.1%)",
+                            foreground: "hsl(215.4 16.3% 46.9%)",
+                        },
+                        card: {
+                            DEFAULT: "hsl(0 0% 100%)",
+                            foreground: "hsl(222.2 84% 4.9%)",
+                        },
+                        destructive: {
+                            DEFAULT: "hsl(0 84.2% 60.2%)",
+                            foreground: "hsl(210 40% 98%)",
+                        },
+                    }
+                }
+            }
+        }
+    </script>
+    <style>
+        /* Only keeping essential custom styles that can't be done with Tailwind */
+        .todo-title.editing {
+            background: #f0f0f0;
+            padding: 4px 8px;
+            border-radius: 4px;
+        }
+    </style>
+</head>
+
+<body class="bg-background text-foreground p-4 min-h-screen">
+    <div class="max-w-lg mx-auto">
+        <h1 class="text-3xl font-bold mb-6 text-center">Project Todos</h1>
+
+        <div class="sticky bg-white top-0 z-50 py-4 flex flex-col items-center gap-4">
+            <div class="w-full">
+                <div class="grid grid-cols-3 gap-2" id="statusFilters">
+                    <button
+                        class="px-4 py-3 border border-border bg-white rounded-md text-sm font-medium cursor-pointer transition-all hover:bg-muted"
+                        data-value="pending" onclick="setStatusFilter('pending')">Pending <span
+                            class="text-muted-foreground font-normal" id="pendingCount">0</span></button>
+                    <button
+                        class="px-4 py-3 border border-border bg-white rounded-md text-sm font-medium cursor-pointer transition-all hover:bg-muted"
+                        data-value="in-progress" onclick="setStatusFilter('in-progress')">Progress <span
+                            class="text-muted-foreground font-normal" id="inProgressCount">0</span></button>
+                    <button
+                        class="px-4 py-3 border border-border bg-white rounded-md text-sm font-medium cursor-pointer transition-all hover:bg-muted"
+                        data-value="done" onclick="setStatusFilter('done')">Done <span
+                            class="text-muted-foreground font-normal" id="doneCount">0</span></button>
+                </div>
+            </div>
+            <div class="w-full">
+                <div class="grid grid-cols-3 gap-2" id="priorityFilters">
+                    <button
+                        class="px-4 py-3 border border-border bg-white rounded-md text-sm font-medium cursor-pointer transition-all hover:bg-muted"
+                        data-value="high" onclick="setPriorityFilter('high')">High <span
+                            class="text-muted-foreground font-normal" id="highCount">0</span></button>
+                    <button
+                        class="px-4 py-3 border border-border bg-white rounded-md text-sm font-medium cursor-pointer transition-all hover:bg-muted"
+                        data-value="medium" onclick="setPriorityFilter('medium')">Medium <span
+                            class="text-muted-foreground font-normal" id="mediumCount">0</span></button>
+                    <button
+                        class="px-4 py-3 border border-border bg-white rounded-md text-sm font-medium cursor-pointer transition-all hover:bg-muted"
+                        data-value="low" onclick="setPriorityFilter('low')">Low <span
+                            class="text-muted-foreground font-normal" id="lowCount">0</span></button>
+                </div>
+            </div>
+        </div>
+        <div class="mb-6 flex flex-col items-center gap-4">
+            <div class="w-full flex justify-center">
+                <input type="text" id="searchFilter" placeholder="Search todos..."
+                    class="w-full px-5 py-4 border border-border rounded-md text-base bg-white transition-colors focus:outline-none focus:ring-2 focus:ring-foreground focus:ring-opacity-20">
+            </div>
+        </div>
+
+        <div class="grid gap-4" id="todosContainer"></div>
+    </div>
+
+    <!-- Export Button with Notification Badge -->
+    <button id="exportButton" onclick="showExportModal()"
+        class="hidden fixed bottom-6 right-6 bg-foreground text-white px-6 py-3 rounded-lg shadow-lg hover:opacity-90 transition-opacity">
+        Export Changes
+        <span id="changeBadge"
+            class="absolute -top-2 -right-2 bg-red-500 text-white text-xs rounded-full h-6 w-6 flex items-center justify-center font-bold">0</span>
+    </button>
+
+    <div class="hidden fixed inset-0 bg-black bg-opacity-80 backdrop-blur-sm z-[1000]" id="promptModal">
+        <div class="bg-card p-8 rounded-lg max-w-2xl mx-auto mt-24 relative border border-border shadow-2xl">
+            <span
+                class="absolute top-4 right-4 text-2xl cursor-pointer text-muted-foreground w-8 h-8 flex items-center justify-center rounded hover:bg-muted transition-colors"
+                onclick="closePromptModal()">&times;</span>
+            <h2 class="text-xl font-semibold mb-4">Export Changes</h2>
+            <p class="mb-4">Copy these commands and paste them into Claude to apply all changes:</p>
+            <div class="bg-muted p-4 rounded font-mono text-sm break-words border border-border" id="promptText"></div>
+            <button onclick="copyPrompt()"
+                class="mt-4 px-4 py-2 bg-foreground text-white rounded-md font-medium hover:opacity-90 transition-opacity">Copy
+                to Clipboard</button>
+        </div>
+    </div>
+
+    <script>
+        let todos = [];
+        let filteredTodos = [];
+        let currentStatusFilter = '';
+        let currentPriorityFilter = '';
+        let changeHistory = [];
+        let expandedField = {}; // Track which field is expanded for each todo
+
+        // Track a change
+        function trackChange(todoId, changeType, oldValue, newValue)
+        {
+            const todo = todos.find(t => t.id === todoId);
+            changeHistory.push({
+                id: todoId,
+                title: todo.title,
+                type: changeType,
+                oldValue: oldValue,
+                newValue: newValue,
+                timestamp: new Date()
+            });
+            updateExportButton();
+        }
+
+        // Update export button visibility and count
+        function updateExportButton()
+        {
+            const exportBtn = document.getElementById('exportButton');
+            const badge = document.getElementById('changeBadge');
+            if (changeHistory.length > 0) {
+                exportBtn.classList.remove('hidden');
+                badge.textContent = changeHistory.length;
+            } else {
+                exportBtn.classList.add('hidden');
+            }
+        }
+
+        // Reset all filters
+        function resetAllFilters()
+        {
+            currentStatusFilter = '';
+            currentPriorityFilter = '';
+            document.getElementById('searchFilter').value = '';
+
+            // Remove active class from all filter buttons
+            document.querySelectorAll('.filter-btn').forEach(btn =>
+            {
+                btn.classList.remove('active');
+            });
+
+            applyFilters();
+        }
+
+        // Set status filter
+        function setStatusFilter(value)
+        {
+            // Toggle filter: if clicking the same filter, reset it
+            if (currentStatusFilter === value) {
+                currentStatusFilter = '';
+            } else {
+                currentStatusFilter = value;
+            }
+
+            // Update active button
+            document.querySelectorAll('#statusFilters button').forEach(btn =>
+            {
+                if (btn.dataset.value === currentStatusFilter) {
+                    btn.classList.add('bg-muted');
+                    btn.classList.remove('bg-white', 'hover:bg-muted');
+                } else {
+                    btn.classList.remove('bg-muted');
+                    btn.classList.add('bg-white', 'hover:bg-muted');
+                }
+            });
+
+            applyFilters();
+        }
+
+        // Set priority filter
+        function setPriorityFilter(value)
+        {
+            // Toggle filter: if clicking the same filter, reset it
+            if (currentPriorityFilter === value) {
+                currentPriorityFilter = '';
+            } else {
+                currentPriorityFilter = value;
+            }
+
+            // Update active button
+            document.querySelectorAll('#priorityFilters button').forEach(btn =>
+            {
+                if (btn.dataset.value === currentPriorityFilter) {
+                    btn.classList.add('bg-muted');
+                    btn.classList.remove('bg-white', 'hover:bg-muted');
+                } else {
+                    btn.classList.remove('bg-muted');
+                    btn.classList.add('bg-white', 'hover:bg-muted');
+                }
+            });
+
+            applyFilters();
+        }
+
+        // Load todos from JSON file
+        async function loadTodos()
+        {
+            try {
+                const response = await fetch('todos.json');
+                const data = await response.json();
+                todos = data.todos;
+                applyFilters(); // This will call updateStats
+            } catch (error) {
+                console.error('Error loading todos:', error);
+                document.getElementById('todosContainer').innerHTML =
+                    '<p>Error loading todos.json. Make sure the file exists in the same directory.</p>';
+            }
+        }
+
+        // Create todo DOM element
+        function createTodo(todo)
+        {
+            const div = document.createElement('div');
+            const isDeleted = changeHistory.some(change => change.id === todo.id && change.type === 'delete');
+            div.className = `bg-card p-6 rounded-lg border border-border shadow-sm hover:shadow-lg hover:-translate-y-0.5 transition-all ${ isDeleted ? 'opacity-50' : '' }`;
+            div.dataset.id = todo.id;
+
+
+            const isStatusExpanded = expandedField[todo.id] === 'status';
+            const isPriorityExpanded = expandedField[todo.id] === 'priority';
+
+            div.innerHTML = `
+                <div class="flex justify-between items-center mb-3 pb-2 border-b border-border">
+                    ${ !isPriorityExpanded ? `
+                        <div class="flex gap-2">
+                            ${ isStatusExpanded ?
+                        ['pending', 'in-progress', 'done'].map(status => `
+                                    <button data-action="update-status" data-todo-id="${ todo.id }" data-value="${ status }" 
+                                        class="px-3 py-1 rounded-md text-sm font-medium capitalize cursor-pointer transition-all ${ todo.status === status ? 'bg-muted' : 'bg-white hover:bg-gray-50'
+                            } border border-border">
+                                        ${ status.replace('-', ' ') }
+                                    </button>
+                                `).join('')
+                        :
+                        `<button class="px-3 py-1 rounded-md text-sm font-medium capitalize cursor-pointer transition-all bg-white hover:bg-gray-50 border border-border" 
+                                    data-action="expand-status" data-todo-id="${ todo.id }">
+                                    ${ todo.status.replace('-', ' ') }
+                                </button>`
+                    }
+                        </div>
+                    ` : '' }
+                    
+                    ${ !isStatusExpanded ? `
+                        <div class="flex gap-2">
+                            ${ isPriorityExpanded ?
+                        ['high', 'medium', 'low'].map(priority => `
+                                    <button data-action="update-priority" data-todo-id="${ todo.id }" data-value="${ priority }" 
+                                        class="px-3 py-1 rounded-md text-sm font-medium capitalize cursor-pointer transition-all ${ todo.priority === priority ? 'bg-muted' : 'bg-white hover:bg-gray-50'
+                            } border border-border">
+                                        ${ priority }
+                                    </button>
+                                `).join('')
+                        :
+                        `<button class="px-3 py-1 rounded-md text-sm font-medium capitalize cursor-pointer transition-all bg-white hover:bg-gray-50 border border-border" 
+                                    data-action="expand-priority" data-todo-id="${ todo.id }">
+                                    ${ todo.priority }
+                                </button>`
+                    }
+                        </div>
+                    ` : '' }
+                </div>
+                <div class="mb-2">
+                    <div class="text-lg font-semibold cursor-pointer todo-title" data-action="edit-title" data-todo-id="${ todo.id }">${ escapeHtml(todo.title) }</div>
+                </div>
+                ${ todo.description ? `<div class="text-muted-foreground text-sm mb-3 leading-relaxed">${ escapeHtml(todo.description) }</div>` : '' }
+                <div class="flex gap-5 text-xs text-muted-foreground mb-3">
+                    <span class="flex items-center gap-1">📅 Created: ${ formatDate(todo.created) }</span>
+                    <span class="flex items-center gap-1">🔄 Updated: ${ formatDate(todo.updated) }</span>
+                </div>
+                <div class="flex justify-between items-center mt-4 pt-4 border-t border-border">
+                    <div class="flex gap-1 flex-wrap">
+                        ${ todo.tags.map(tag => `<span class="bg-muted text-muted-foreground px-2 py-0.5 rounded-full text-xs font-medium border border-border">${ escapeHtml(tag) }</span>`).join('') }
+                    </div>
+                    <div class="flex gap-2">
+                        <button class="px-3 py-1 border border-red-500 text-red-500 rounded-md text-sm font-medium capitalize cursor-pointer transition-all hover:bg-red-50" data-action="delete" data-todo-id="${ todo.id }">
+                            Delete
+                        </button>
+                    </div>
+                </div>
+            `;
+
+            return div;
+        }
+
+        // Escape HTML to prevent XSS
+        function escapeHtml(text)
+        {
+            const div = document.createElement('div');
+            div.textContent = text;
+            return div.innerHTML;
+        }
+
+        // Update statistics based on filtered todos
+        function updateStats()
+        {
+            const searchFilter = document.getElementById('searchFilter').value.toLowerCase();
+
+            // Status counts - respect other filters
+            const pendingCount = todos.filter(t =>
+            {
+                const matchPriority = !currentPriorityFilter || t.priority === currentPriorityFilter;
+                const matchSearch = !searchFilter ||
+                    t.title.toLowerCase().includes(searchFilter) ||
+                    t.description.toLowerCase().includes(searchFilter) ||
+                    t.tags.some(tag => tag.toLowerCase().includes(searchFilter));
+                return t.status === 'pending' && matchPriority && matchSearch;
+            }).length;
+
+            const inProgressCount = todos.filter(t =>
+            {
+                const matchPriority = !currentPriorityFilter || t.priority === currentPriorityFilter;
+                const matchSearch = !searchFilter ||
+                    t.title.toLowerCase().includes(searchFilter) ||
+                    t.description.toLowerCase().includes(searchFilter) ||
+                    t.tags.some(tag => tag.toLowerCase().includes(searchFilter));
+                return t.status === 'in-progress' && matchPriority && matchSearch;
+            }).length;
+
+            const doneCount = todos.filter(t =>
+            {
+                const matchPriority = !currentPriorityFilter || t.priority === currentPriorityFilter;
+                const matchSearch = !searchFilter ||
+                    t.title.toLowerCase().includes(searchFilter) ||
+                    t.description.toLowerCase().includes(searchFilter) ||
+                    t.tags.some(tag => tag.toLowerCase().includes(searchFilter));
+                return t.status === 'done' && matchPriority && matchSearch;
+            }).length;
+
+            document.getElementById('pendingCount').textContent = pendingCount;
+            document.getElementById('inProgressCount').textContent = inProgressCount;
+            document.getElementById('doneCount').textContent = doneCount;
+
+            // Priority counts - respect other filters
+            const highCount = todos.filter(t =>
+            {
+                const matchStatus = !currentStatusFilter || t.status === currentStatusFilter;
+                const matchSearch = !searchFilter ||
+                    t.title.toLowerCase().includes(searchFilter) ||
+                    t.description.toLowerCase().includes(searchFilter) ||
+                    t.tags.some(tag => tag.toLowerCase().includes(searchFilter));
+                return t.priority === 'high' && matchStatus && matchSearch;
+            }).length;
+
+            const mediumCount = todos.filter(t =>
+            {
+                const matchStatus = !currentStatusFilter || t.status === currentStatusFilter;
+                const matchSearch = !searchFilter ||
+                    t.title.toLowerCase().includes(searchFilter) ||
+                    t.description.toLowerCase().includes(searchFilter) ||
+                    t.tags.some(tag => tag.toLowerCase().includes(searchFilter));
+                return t.priority === 'medium' && matchStatus && matchSearch;
+            }).length;
+
+            const lowCount = todos.filter(t =>
+            {
+                const matchStatus = !currentStatusFilter || t.status === currentStatusFilter;
+                const matchSearch = !searchFilter ||
+                    t.title.toLowerCase().includes(searchFilter) ||
+                    t.description.toLowerCase().includes(searchFilter) ||
+                    t.tags.some(tag => tag.toLowerCase().includes(searchFilter));
+                return t.priority === 'low' && matchStatus && matchSearch;
+            }).length;
+
+            document.getElementById('highCount').textContent = highCount;
+            document.getElementById('mediumCount').textContent = mediumCount;
+            document.getElementById('lowCount').textContent = lowCount;
+        }
+
+        // Check if any filters are active
+        function hasActiveFilters()
+        {
+            return currentStatusFilter !== '' || currentPriorityFilter !== '' || document.getElementById('searchFilter').value !== '';
+        }
+
+        // Apply filters
+        function applyFilters()
+        {
+            const statusFilter = currentStatusFilter;
+            const priorityFilter = currentPriorityFilter;
+            const searchFilter = document.getElementById('searchFilter').value.toLowerCase();
+
+            filteredTodos = todos.filter(todo =>
+            {
+                const matchStatus = !statusFilter || todo.status === statusFilter;
+                const matchPriority = !priorityFilter || todo.priority === priorityFilter;
+                const matchSearch = !searchFilter ||
+                    todo.title.toLowerCase().includes(searchFilter) ||
+                    todo.description.toLowerCase().includes(searchFilter) ||
+                    todo.tags.some(tag => tag.toLowerCase().includes(searchFilter));
+
+                return matchStatus && matchPriority && matchSearch;
+            });
+
+            renderTodos();
+            updateStats(); // Update stats when filters change
+        }
+
+        // Render todos
+        function renderTodos()
+        {
+            const container = document.getElementById('todosContainer');
+            container.innerHTML = '';
+
+            if (filteredTodos.length === 0) {
+                container.innerHTML = '<p>No todos found matching the filters.</p>';
+                return;
+            }
+
+            filteredTodos.forEach(todo =>
+            {
+                container.appendChild(createTodo(todo));
+            });
+
+            // No need to attach listeners here since we use event delegation
+        }
+
+
+        // Edit title inline
+        function editTitle(id)
+        {
+            const todo = todos.find(t => t.id === id);
+            const titleElement = document.querySelector(`[data-id="${ id }"] .todo-title`);
+
+            if (titleElement.classList.contains('editing')) return;
+
+            titleElement.classList.add('editing');
+            titleElement.contentEditable = true;
+            titleElement.focus();
+
+            // Select all text
+            const range = document.createRange();
+            range.selectNodeContents(titleElement);
+            const selection = window.getSelection();
+            selection.removeAllRanges();
+            selection.addRange(range);
+
+            titleElement.addEventListener('blur', function ()
+            {
+                const newTitle = titleElement.textContent.trim();
+                if (newTitle && newTitle !== todo.title) {
+                    trackChange(id, 'title', todo.title, newTitle);
+                    todo.title = newTitle;
+                }
+                titleElement.contentEditable = false;
+                titleElement.classList.remove('editing');
+            }, {once: true});
+
+            titleElement.addEventListener('keydown', function (e)
+            {
+                if (e.key === 'Enter') {
+                    e.preventDefault();
+                    titleElement.blur();
+                }
+            });
+        }
+
+        // Format date for display
+        function formatDate(dateString)
+        {
+            const date = new Date(dateString);
+            const today = new Date();
+            const yesterday = new Date(today);
+            yesterday.setDate(yesterday.getDate() - 1);
+
+            const dateOnly = date.toDateString();
+            const todayOnly = today.toDateString();
+            const yesterdayOnly = yesterday.toDateString();
+
+            if (dateOnly === todayOnly) {
+                return 'Today ' + date.toLocaleTimeString('en-US', {hour: 'numeric', minute: '2-digit'});
+            } else if (dateOnly === yesterdayOnly) {
+                return 'Yesterday ' + date.toLocaleTimeString('en-US', {hour: 'numeric', minute: '2-digit'});
+            } else {
+                return date.toLocaleDateString('en-US', {month: 'short', day: 'numeric', year: 'numeric'});
+            }
+        }
+
+        // Expand status selector
+        function expandStatus(todoId)
+        {
+            expandedField[todoId] = 'status';
+            renderTodos();
+        }
+
+        // Expand priority selector
+        function expandPriority(todoId)
+        {
+            expandedField[todoId] = 'priority';
+            renderTodos();
+        }
+
+        // Update todo status
+        function updateTodoStatus(todoId, newStatus)
+        {
+            const todo = todos.find(t => t.id === todoId);
+            const oldStatus = todo.status;
+            
+            // Don't track if status hasn't changed
+            if (oldStatus === newStatus) {
+                delete expandedField[todoId];
+                renderTodos();
+                return;
+            }
+            
+            todo.status = newStatus;
+            trackChange(todoId, 'status', oldStatus, newStatus);
+            delete expandedField[todoId];
+            renderTodos();
+        }
+
+        // Update todo priority
+        function updateTodoPriority(todoId, newPriority)
+        {
+            const todo = todos.find(t => t.id === todoId);
+            const oldPriority = todo.priority;
+            
+            // Don't track if priority hasn't changed
+            if (oldPriority === newPriority) {
+                delete expandedField[todoId];
+                renderTodos();
+                return;
+            }
+            
+            todo.priority = newPriority;
+            trackChange(todoId, 'priority', oldPriority, newPriority);
+            delete expandedField[todoId];
+            renderTodos();
+        }
+
+
+        // Delete todo
+        function deleteTodo(id)
+        {
+            const todo = todos.find(t => t.id === id);
+            if (confirm(`Are you sure you want to delete "${ todo.title }"?`)) {
+                // Check if already marked for deletion
+                const existingDeleteIndex = changeHistory.findIndex(change =>
+                    change.id === id && change.type === 'delete'
+                );
+
+                if (existingDeleteIndex === -1) {
+                    trackChange(id, 'delete', todo.title, null);
+                } else {
+                    // If already marked for deletion, remove from change history (undo delete)
+                    changeHistory.splice(existingDeleteIndex, 1);
+                    updateExportButton();
+                }
+
+                renderTodos(); // Re-render to update opacity
+            }
+        }
+
+        // Show export modal
+        function showExportModal()
+        {
+            const commands = generateCommands();
+            document.getElementById('promptText').textContent = commands;
+            document.getElementById('promptModal').classList.remove('hidden');
+        }
+
+        // Generate commands from change history
+        function generateCommands()
+        {
+            return changeHistory.map(change =>
+            {
+                switch (change.type) {
+                    case 'status':
+                        return `Please change the status of todo "${ change.title }" (ID: ${ change.id }) from ${ change.oldValue } to ${ change.newValue }`;
+                    case 'priority':
+                        return `Please change the priority of todo "${ change.title }" (ID: ${ change.id }) from ${ change.oldValue } to ${ change.newValue }`;
+                    case 'title':
+                        return `Please update the todo with ID "${ change.id }" from title "${ change.oldValue }" to "${ change.newValue }"`;
+                    case 'delete':
+                        return `Please delete the todo "${ change.oldValue }" (ID: ${ change.id }) from todos.json`;
+                    default:
+                        return '';
+                }
+            }).join('\n');
+        }
+
+        // Show prompt modal (kept for compatibility)
+        function showPrompt(text)
+        {
+            document.getElementById('promptText').textContent = text;
+            document.getElementById('promptModal').classList.remove('hidden');
+        }
+
+        // Close prompt modal
+        function closePromptModal()
+        {
+            document.getElementById('promptModal').classList.add('hidden');
+        }
+
+        // Copy prompt to clipboard
+        function copyPrompt()
+        {
+            const text = document.getElementById('promptText').textContent;
+            navigator.clipboard.writeText(text).then(() =>
+            {
+                alert('Commands copied to clipboard! Changes cleared.');
+                changeHistory = [];
+                updateExportButton();
+                closePromptModal();
+            }).catch(err =>
+            {
+                console.error('Failed to copy:', err);
+            });
+        }
+
+        // Event listeners
+        document.getElementById('searchFilter').addEventListener('input', applyFilters);
+
+        // Global click handler with event delegation
+        document.addEventListener('click', function (e)
+        {
+            // Check if clicked on modal background
+            if (e.target === document.getElementById('promptModal')) {
+                closePromptModal();
+                return;
+            }
+
+            // Check for data-action attribute
+            const actionElement = e.target.closest('[data-action]');
+            if (actionElement) {
+                e.preventDefault();
+                e.stopPropagation();
+
+                const action = actionElement.dataset.action;
+                const todoId = actionElement.dataset.todoId;
+                const value = actionElement.dataset.value;
+
+                console.log('Action:', action, 'TodoId:', todoId, 'Value:', value);
+
+                switch (action) {
+                    case 'expand-status':
+                        expandStatus(todoId);
+                        break;
+                    case 'expand-priority':
+                        expandPriority(todoId);
+                        break;
+                    case 'update-status':
+                        updateTodoStatus(todoId, value);
+                        break;
+                    case 'update-priority':
+                        updateTodoPriority(todoId, value);
+                        break;
+                    case 'delete':
+                        deleteTodo(todoId);
+                        break;
+                    case 'edit-title':
+                        editTitle(todoId);
+                        break;
+                }
+                return;
+            }
+
+            // Close expanded fields when clicking outside todo items
+            const clickedElement = e.target.closest('.todo-item');
+            if (!clickedElement) {
+                if (Object.keys(expandedField).length > 0) {
+                    expandedField = {};
+                    renderTodos();
+                }
+            }
+        });
+
+        // Load todos on page load
+        loadTodos();
+
+        // Reload todos every 5 seconds to catch external changes
+        setInterval(loadTodos, 5000);
+    </script>
+</body>
+
+</html>
