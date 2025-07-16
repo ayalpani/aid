@@ -18,6 +18,7 @@ When adding new todos:
 - Formulates the task more precisely and understandably
 - Asks: "Would you like the raw or improved version?"
 - The improved version should be approximately the same length (unless requested otherwise)
+- **Language Conversion**: Whatever language is used to request the task, when putting it into todos.json, convert it to English without losing any information and without changing the message content
 
 ### 3. Structured Data Processing
 - The JSON file should generally NOT be read and written directly by LLM
