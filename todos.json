@@ -2,127 +2,194 @@
   "todos": [
     {
       "id": "550e8400-e29b-41d4-a716-446655440001",
-      "title": "Set up TypeScript configuration",
+      "title": "Set up TypeScript configuration with tsconfig.json including strict mode and proper module resolution settings",
       "description": "Configure tsconfig.json with strict mode and proper module resolution",
       "status": "done",
       "priority": "high",
       "created": "2025-01-16T10:00:00Z",
-      "updated": "2025-01-16T17:13:00Z",
-      "assignee": "",
-      "tags": ["setup", "typescript"],
-      "requestedBy": "user"
+      "updated": "2025-07-16T23:04:13.631Z",
+      "tags": [
+        "setup",
+        "typescript"
+      ],
+      "createdBy": "human",
+      "updatedBy": "robot",
+      "assignedTo": ""
     },
     {
       "id": "550e8400-e29b-41d4-a716-446655440003",
-      "title": "Create API documentation",
+      "title": "Create comprehensive API documentation for all REST endpoints using OpenAPI/Swagger specification format",
       "description": "Document all REST endpoints with OpenAPI/Swagger",
       "status": "in-progress",
       "priority": "medium",
       "created": "2025-01-16T10:00:00Z",
-      "updated": "2025-01-16T10:00:00Z",
-      "assignee": "",
-      "tags": ["documentation", "api"],
-      "requestedBy": "user"
+      "updated": "2025-07-16T23:04:13.632Z",
+      "tags": [
+        "documentation",
+        "api"
+      ],
+      "createdBy": "human",
+      "updatedBy": "robot",
+      "assignedTo": ""
     },
     {
       "id": "550e8400-e29b-41d4-a716-446655440005",
-      "title": "Implement error logging",
+      "title": "Implement centralized error logging system using Sentry or similar service for production monitoring and debugging",
       "description": "Add centralized error logging with Sentry or similar service",
       "status": "pending",
       "priority": "medium",
       "created": "2025-01-16T10:30:00Z",
-      "updated": "2025-01-16T10:30:00Z",
-      "assignee": "",
-      "tags": ["monitoring", "backend", "infrastructure"],
-      "requestedBy": "user"
+      "updated": "2025-07-16T23:04:13.632Z",
+      "tags": [
+        "monitoring",
+        "backend",
+        "infrastructure"
+      ],
+      "createdBy": "human",
+      "updatedBy": "robot",
+      "assignedTo": ""
     },
     {
       "id": "550e8400-e29b-41d4-a716-446655440008",
-      "title": "Implement rate limiting",
+      "title": "Implement API rate limiting mechanism to prevent abuse and ensure fair usage across all endpoints",
       "description": "Add API rate limiting to prevent abuse and ensure fair usage",
       "status": "pending",
       "priority": "high",
       "created": "2025-01-16T10:30:00Z",
-      "updated": "2025-01-16T10:30:00Z",
-      "assignee": "",
-      "tags": ["security", "api", "backend"],
-      "requestedBy": "user"
+      "updated": "2025-07-16T23:04:13.632Z",
+      "tags": [
+        "security",
+        "api",
+        "backend"
+      ],
+      "createdBy": "human",
+      "updatedBy": "robot",
+      "assignedTo": ""
     },
     {
       "id": "550e8400-e29b-41d4-a716-446655440009",
-      "title": "Create user dashboard UI",
+      "title": "Design and implement the main user dashboard UI with customizable widgets and responsive layout",
       "description": "Design and implement the main user dashboard with widgets",
       "status": "in-progress",
       "priority": "high",
       "created": "2025-01-16T10:30:00Z",
-      "updated": "2025-01-16T10:30:00Z",
-      "assignee": "",
-      "tags": ["frontend", "ui", "feature"],
-      "requestedBy": "user"
+      "updated": "2025-07-16T23:04:13.632Z",
+      "tags": [
+        "frontend",
+        "ui",
+        "feature"
+      ],
+      "createdBy": "human",
+      "updatedBy": "robot",
+      "assignedTo": ""
     },
     {
       "id": "550e8400-e29b-41d4-a716-446655440010",
-      "title": "Add dark mode support",
+      "title": "Add dark mode support with theme switching functionality allowing users to toggle between dark and light modes",
       "description": "Implement theme switching with dark/light mode options",
       "status": "pending",
       "priority": "low",
       "created": "2025-01-16T10:30:00Z",
-      "updated": "2025-01-16T10:30:00Z",
-      "assignee": "",
-      "tags": ["frontend", "ui", "enhancement"],
-      "requestedBy": "user"
+      "updated": "2025-07-16T23:04:13.632Z",
+      "tags": [
+        "frontend",
+        "ui",
+        "enhancement"
+      ],
+      "createdBy": "human",
+      "updatedBy": "robot",
+      "assignedTo": ""
     },
     {
       "id": "550e8400-e29b-41d4-a716-446655440011",
-      "title": "Set up monitoring alerts",
+      "title": "Set up comprehensive monitoring alerts for system downtime and performance issues with notification channels",
       "description": "Configure alerts for system downtime and performance issues",
       "status": "pending",
       "priority": "medium",
       "created": "2025-01-16T10:30:00Z",
-      "updated": "2025-01-16T10:30:00Z",
-      "assignee": "",
-      "tags": ["monitoring", "devops", "infrastructure"],
-      "requestedBy": "user"
+      "updated": "2025-07-16T23:04:13.632Z",
+      "tags": [
+        "monitoring",
+        "devops",
+        "infrastructure"
+      ],
+      "createdBy": "human",
+      "updatedBy": "robot",
+      "assignedTo": ""
     },
     {
       "id": "550e8400-e29b-41d4-a716-446655440012",
-      "title": "Implement data export feature",
+      "title": "Implement data export feature allowing users to download their data in CSV and JSON formats",
       "description": "Allow users to export their data in CSV and JSON formats",
       "status": "pending",
       "priority": "low",
       "created": "2025-01-16T10:30:00Z",
-      "updated": "2025-01-16T10:30:00Z",
-      "assignee": "",
-      "tags": ["feature", "backend", "user-request"],
-      "requestedBy": "user"
+      "updated": "2025-07-16T23:04:13.632Z",
+      "tags": [
+        "feature",
+        "backend",
+        "user-request"
+      ],
+      "createdBy": "human",
+      "updatedBy": "robot",
+      "assignedTo": ""
     },
     {
       "id": "550e8400-e29b-41d4-a716-446655440013",
-      "title": "Update dependencies",
+      "title": "Review and update all npm packages to latest stable versions ensuring security and compatibility",
       "description": "Review and update all npm packages to latest stable versions",
       "status": "done",
       "priority": "low",
       "created": "2025-01-16T10:30:00Z",
-      "updated": "2025-01-16T10:30:00Z",
-      "assignee": "",
-      "tags": ["maintenance", "security", "dependencies"],
-      "requestedBy": "user"
+      "updated": "2025-07-16T23:04:13.632Z",
+      "tags": [
+        "maintenance",
+        "security",
+        "dependencies"
+      ],
+      "createdBy": "human",
+      "updatedBy": "robot",
+      "assignedTo": ""
     },
     {
       "id": "550e8400-e29b-41d4-a716-446655440014",
-      "title": "Create Kanban Board Mode",
+      "title": "Create Kanban board view for todo-viewer.html with drag-and-drop support for organizing todos by status columns",
       "description": "Add a Kanban board view to the todo-viewer.html with drag-and-drop support for organizing todos by status columns",
       "status": "pending",
       "priority": "medium",
       "created": "2025-01-16T17:14:00Z",
-      "updated": "2025-01-16T17:14:00Z",
-      "assignee": "",
-      "tags": ["frontend", "ui", "feature", "enhancement"],
-      "requestedBy": "ai-agent"
+      "updated": "2025-07-16T23:04:13.632Z",
+      "tags": [
+        "frontend",
+        "ui",
+        "feature",
+        "enhancement"
+      ],
+      "createdBy": "robot",
+      "updatedBy": "robot",
+      "assignedTo": ""
+    }
+    },
+    {
+      "id": "550e8400-e29b-41d4-a716-446655440015",
+      "title": "Check if todo-viewer.html requires local server or can load todos.json directly despite CORS",
+      "description": "Investigate whether the viewer needs a local HTTP server to fetch todos.json or if there's an alternative approach to load the data when opening the HTML file directly",
+      "status": "pending",
+      "priority": "medium",
+      "created": "2025-07-17T00:12:37Z",
+      "updated": "2025-07-17T00:12:37Z",
+      "tags": [
+        "frontend",
+        "infrastructure",
+        "investigation"
+      ],
+      "createdBy": "human",
+      "updatedBy": "human",
+      "assignedTo": ""
     }
   ],
   "meta": {
     "version": "1.0.0",
-    "lastModified": "2025-01-16T19:00:00Z"
+    "lastModified": "2025-07-17T00:12:37Z"
   }
 }
