@@ -1,0 +1,177 @@
+{
+  "todos": [
+    {
+      "id": "550e8400-e29b-41d4-a716-446655440001",
+      "title": "Set up TypeScript configuration",
+      "description": "Configure tsconfig.json with strict mode and proper module resolution",
+      "status": "done",
+      "priority": "high",
+      "created": "2025-01-16T10:00:00Z",
+      "updated": "2025-01-16T17:13:00Z",
+      "tags": [
+        "setup",
+        "typescript"
+      ],
+      "createdBy": "user",
+      "updatedBy": "user",
+      "assignedTo": ""
+    },
+    {
+      "id": "550e8400-e29b-41d4-a716-446655440003",
+      "title": "Create API documentation",
+      "description": "Document all REST endpoints with OpenAPI/Swagger",
+      "status": "in-progress",
+      "priority": "medium",
+      "created": "2025-01-16T10:00:00Z",
+      "updated": "2025-01-16T10:00:00Z",
+      "tags": [
+        "documentation",
+        "api"
+      ],
+      "createdBy": "user",
+      "updatedBy": "user",
+      "assignedTo": ""
+    },
+    {
+      "id": "550e8400-e29b-41d4-a716-446655440005",
+      "title": "Implement error logging",
+      "description": "Add centralized error logging with Sentry or similar service",
+      "status": "pending",
+      "priority": "medium",
+      "created": "2025-01-16T10:30:00Z",
+      "updated": "2025-01-16T10:30:00Z",
+      "tags": [
+        "monitoring",
+        "backend",
+        "infrastructure"
+      ],
+      "createdBy": "user",
+      "updatedBy": "user",
+      "assignedTo": ""
+    },
+    {
+      "id": "550e8400-e29b-41d4-a716-446655440008",
+      "title": "Implement rate limiting",
+      "description": "Add API rate limiting to prevent abuse and ensure fair usage",
+      "status": "pending",
+      "priority": "high",
+      "created": "2025-01-16T10:30:00Z",
+      "updated": "2025-01-16T10:30:00Z",
+      "tags": [
+        "security",
+        "api",
+        "backend"
+      ],
+      "createdBy": "user",
+      "updatedBy": "user",
+      "assignedTo": ""
+    },
+    {
+      "id": "550e8400-e29b-41d4-a716-446655440009",
+      "title": "Create user dashboard UI",
+      "description": "Design and implement the main user dashboard with widgets",
+      "status": "in-progress",
+      "priority": "high",
+      "created": "2025-01-16T10:30:00Z",
+      "updated": "2025-01-16T10:30:00Z",
+      "tags": [
+        "frontend",
+        "ui",
+        "feature"
+      ],
+      "createdBy": "user",
+      "updatedBy": "user",
+      "assignedTo": ""
+    },
+    {
+      "id": "550e8400-e29b-41d4-a716-446655440010",
+      "title": "Add dark mode support",
+      "description": "Implement theme switching with dark/light mode options",
+      "status": "pending",
+      "priority": "low",
+      "created": "2025-01-16T10:30:00Z",
+      "updated": "2025-01-16T10:30:00Z",
+      "tags": [
+        "frontend",
+        "ui",
+        "enhancement"
+      ],
+      "createdBy": "user",
+      "updatedBy": "user",
+      "assignedTo": ""
+    },
+    {
+      "id": "550e8400-e29b-41d4-a716-446655440011",
+      "title": "Set up monitoring alerts",
+      "description": "Configure alerts for system downtime and performance issues",
+      "status": "pending",
+      "priority": "medium",
+      "created": "2025-01-16T10:30:00Z",
+      "updated": "2025-01-16T10:30:00Z",
+      "tags": [
+        "monitoring",
+        "devops",
+        "infrastructure"
+      ],
+      "createdBy": "user",
+      "updatedBy": "user",
+      "assignedTo": ""
+    },
+    {
+      "id": "550e8400-e29b-41d4-a716-446655440012",
+      "title": "Implement data export feature",
+      "description": "Allow users to export their data in CSV and JSON formats",
+      "status": "pending",
+      "priority": "low",
+      "created": "2025-01-16T10:30:00Z",
+      "updated": "2025-01-16T10:30:00Z",
+      "tags": [
+        "feature",
+        "backend",
+        "user-request"
+      ],
+      "createdBy": "user",
+      "updatedBy": "user",
+      "assignedTo": ""
+    },
+    {
+      "id": "550e8400-e29b-41d4-a716-446655440013",
+      "title": "Update dependencies",
+      "description": "Review and update all npm packages to latest stable versions",
+      "status": "done",
+      "priority": "low",
+      "created": "2025-01-16T10:30:00Z",
+      "updated": "2025-01-16T10:30:00Z",
+      "tags": [
+        "maintenance",
+        "security",
+        "dependencies"
+      ],
+      "createdBy": "user",
+      "updatedBy": "user",
+      "assignedTo": ""
+    },
+    {
+      "id": "550e8400-e29b-41d4-a716-446655440014",
+      "title": "Create Kanban Board Mode",
+      "description": "Add a Kanban board view to the todo-viewer.html with drag-and-drop support for organizing todos by status columns",
+      "status": "pending",
+      "priority": "medium",
+      "created": "2025-01-16T17:14:00Z",
+      "updated": "2025-01-16T17:14:00Z",
+      "tags": [
+        "frontend",
+        "ui",
+        "feature",
+        "enhancement"
+      ],
+      "createdBy": "robot",
+      "updatedBy": "robot",
+      "assignedTo": ""
+    }
+  ],
+  "meta": {
+    "version": "1.0.0",
+    "lastModified": "2025-07-16T22:07:50.731Z"
+  }
+}
