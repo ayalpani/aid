@@ -117,27 +117,43 @@ Each todo in `todos.json` contains:
   "priority": "high | medium | low",
   "created": "ISO-8601 timestamp",
   "updated": "ISO-8601 timestamp",
-  "assignee": "Optional assignee name/email",
   "tags": ["array", "of", "tags"],
-  "requestedBy": "user | ai-agent"
+  "createdBy": "human | robot",
+  "updatedBy": "human | robot",
+  "assignedTo": "Optional assignee name/email"
 }
 ```
 
-### Requested By Field
-The `requestedBy` field indicates who initiated the creation of the todo:
-- **"user"**: The todo was explicitly requested by the user through a command
-- **"ai-agent"**: The todo was created by the AI while working on another task
+### Tracking Fields
+
+#### Created By Field
+The `createdBy` field indicates who initially created the todo:
+- **"human"**: The todo was explicitly requested by the user through a command
+- **"robot"**: The todo was created by the AI while working on another task
+
+#### Updated By Field  
+The `updatedBy` field tracks who last modified the todo:
+- **"human"**: The user made the last update
+- **"robot"**: The AI made the last update
+
+#### Assigned To Field
+The `assignedTo` field specifies who is responsible for completing the todo:
+- Can contain a person's name or email
+- Empty string if unassigned
+- Use this for task allocation and filtering by assignee
 
 #### Behavior Rules:
-1. When a user explicitly asks to create a todo (e.g., "Add a new todo: ..."), set `requestedBy: "user"`
-2. When the AI discovers a task while working and proactively creates a todo, set `requestedBy: "ai-agent"`
-3. Default value is "user" if not specified
-4. This field helps track task origin and can be used for filtering AI-suggested vs user-requested tasks
+1. When a user explicitly asks to create a todo (e.g., "Add a new todo: ..."), set `createdBy: "human"`
+2. When the AI discovers a task while working and proactively creates a todo, set `createdBy: "robot"`
+3. Always update `updatedBy` field when modifying a todo
+4. Default value for `createdBy` and `updatedBy` is "human" if not specified
+5. These fields help track task origin and modification history
 
 #### Examples:
-- User says "Create todo for implementing login feature" → `requestedBy: "user"`
-- AI finds missing tests while reviewing code and creates a todo → `requestedBy: "ai-agent"`
-- User runs a command that generates multiple todos → all have `requestedBy: "user"`
+- User says "Create todo for implementing login feature" → `createdBy: "human"`
+- AI finds missing tests while reviewing code and creates a todo → `createdBy: "robot"`
+- User updates priority of a todo → `updatedBy: "human"`
+- Todo assigned to "john.doe@example.com" → `assignedTo: "john.doe@example.com"`
 
 ### Status Values
 - **pending**: Todo is created but not started
