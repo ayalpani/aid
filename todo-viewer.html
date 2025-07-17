@@ -4,7 +4,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Project Todo Viewer</title>
+    <title>Repo Todos</title>
     <!-- React and ReactDOM from CDN -->
     <script crossorigin src="https://unpkg.com/react@18/umd/react.production.min.js"></script>
     <script crossorigin src="https://unpkg.com/react-dom@18/umd/react-dom.production.min.js"></script>
@@ -61,7 +61,7 @@
             return div.innerHTML;
         };
 
-        const formatDate = (dateString) =>
+        const formatDate = (dateString, includeYear = false) =>
         {
             const date = new Date(dateString);
             const today = new Date();
@@ -77,7 +77,11 @@
             } else if (dateOnly === yesterdayOnly) {
                 return 'Yesterday ' + date.toLocaleTimeString('en-US', {hour: 'numeric', minute: '2-digit'});
             } else {
-                return date.toLocaleDateString('en-US', {month: 'short', day: 'numeric', year: 'numeric'});
+                const options = {month: 'short', day: 'numeric'};
+                if (includeYear) {
+                    options.year = 'numeric';
+                }
+                return date.toLocaleDateString('en-US', options);
             }
         };
 
@@ -135,7 +139,7 @@
 
             return (
                 <div className={`todo-card bg-card p-4 border-1 border-t transition-all ${ isDeleted ? 'opacity-50' : '' }`}>
-                    <div className="flex justify-between items-center mb-3 pb-4 border-border">
+                    <div className="flex justify-between items-center pb-4 border-border">
                         {!isPriorityExpanded && (
                             <div className="flex gap-2">
                                 {isStatusExpanded ? (
@@ -206,38 +210,21 @@
                         )}
                     </div>
 
-                    {todo.description && (
+                    {/*todo.description && (
                         <div className="text-muted-foreground text-sm mb-3 leading-relaxed">
                             {escapeHtml(todo.description)}
                         </div>
-                    )}
+                    )*/}
 
-                    <div className="flex gap-5 text-xs text-muted-foreground mb-3">
-                        <span className="flex items-center gap-1">Created: {formatDate(todo.created)} by {todo.requestedBy}</span>
-                        <span className="flex items-center gap-1">Updated: {formatDate(todo.updated)} by {todo.requestedBy}</span>
-                        {todo.requestedBy && (
+                    <div className="flex flex-col gap-1 text-xs text-muted-foreground">
+                        <div className="flex flex-col">
+                            <span className="flex items-center gap-1">Created {formatDate(todo.created)} by {todo.createdBy === 'robot' ? 'Robot' : 'Human'} - Updated {formatDate(todo.updated)} by {todo.updatedBy === 'robot' ? 'Robot' : 'Human'}</span>
+                        </div>
+                        {todo.assignedTo && (
                             <span className="flex items-center gap-1">
-                                By: {todo.requestedBy === 'ai-agent' ? 'AI Agent' : 'User'}
+                                Assigned to: {todo.assignedTo}
                             </span>
                         )}
-                    </div>
-
-                    <div className="flex justify-between items-center mt-4 pt-4 border-t border-border">
-                        <div className="flex gap-1 flex-wrap">
-                            {todo.tags.map(tag => (
-                                <span key={tag} className="bg-muted text-muted-foreground px-2 py-0.5 rounded-full text-xs font-medium border border-border">
-                                    {escapeHtml(tag)}
-                                </span>
-                            ))}
-                        </div>
-                        <div className="flex gap-2">
-                            <button
-                                className="px-3 py-1 border border-red-500 text-red-500 rounded-md text-sm font-medium capitalize cursor-pointer transition-all hover:bg-red-50"
-                                onClick={() => onDelete(todo.id)}
-                            >
-                                Delete
-                            </button>
-                        </div>
                     </div>
                 </div>
             );
@@ -297,8 +284,8 @@
             useEffect(() =>
             {
                 loadTodos();
-                const interval = setInterval(loadTodos, 5000);
-                return () => clearInterval(interval);
+                // const interval = setInterval(loadTodos, 5000);
+                // return () => clearInterval(interval);
             }, []);
 
             // Track changes
@@ -475,10 +462,10 @@
 
             return (
                 <div className="max-w-lg mx-auto">
-                    <h1 className="text-3xl font-bold my-6 text-center">Project Todos</h1>
+                    <h1 className="text-3xl font-bold my-6 text-center">Repo Todos</h1>
 
-                    <div className="flex flex-col items-center p-4">
-                        <div className="w-full flex justify-center">
+                    <div className="flex flex-col items-center p-4 rounded-md">
+                        <div className="w-full flex justify-center p-2 rounded-md bg-pink-100/50">
                             <input
                                 type="text"
                                 placeholder="Search todos..."
@@ -542,7 +529,7 @@
                         </div>
                     </div>
 
-                    <div className="grid gap-4">
+                    <div className="grid gap-0">
                         {filteredTodos.length === 0 ? (
                             <p>No todos found matching the filters.</p>
                         ) : (
